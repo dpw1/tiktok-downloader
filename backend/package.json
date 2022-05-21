@@ -1,0 +1,26 @@
+{
+  "name": "instagram_video_downloader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@juliendu11/instagram-downloader": "^0.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.1",
+    "extra-fs": "^3.0.67",
+    "ffmpeg": "0.0.4",
+    "ffmpeg-cli": "^2.7.5",
+    "fluent-ffmpeg": "^2.1.2",
+    "fs-extra": "^10.1.0",
+    "instamancer": "^3.3.1",
+    "lowdb": "^1.0.0",
+    "tiktok-downloader": "0.0.4",
+    "tiktok-scraper": "^1.4.36"
+  }
+}
