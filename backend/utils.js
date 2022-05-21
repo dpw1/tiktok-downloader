@@ -3,9 +3,17 @@ const fs = require("fs-extra");
 const http = require("https");
 const fluent_ffmpeg = require("fluent-ffmpeg");
 
-async function downloadVideo(url, folder) {
-  const TITLE_CHARACTER_LIMIT = 50;
+const FileSync = require("lowdb/adapters/FileSync");
+const lowDb = require("lowdb");
+const { resolve } = require("path");
 
+/* Database init */
+const db = lowDb(new FileSync("db.json"));
+db.defaults({ videos: [] }).write();
+
+/* ======================== */
+
+async function getTikTokMetaData(url) {
   const options = {
     number: 50,
     since: 0,
@@ -31,7 +39,51 @@ async function downloadVideo(url, folder) {
   return new Promise(async (resolve, reject) => {
     try {
       const videoMeta = await TikTokScraper.getVideoMeta(url, options);
+      resolve(videoMeta);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
+async function saveVideoToDatabase(url, videoMeta) {
+  const video = {
+    id: videoMeta.collector[0].id,
+    title: videoMeta.collector[0].text,
+    creationDate: new Date().getTime(),
+    hashtags: videoMeta.collector[0].hashtags
+      .map((e) => `#${e.name}`)
+      .join(" "),
+    author: `@${videoMeta.collector[0].authorMeta.name}`,
+    url,
+  };
+
+  try {
+    const videos = db.get("videos").value();
+
+    let found = videos.filter((e) => e.id === video.id)[0];
+
+    console.log(found);
+    if (found) {
+      console.log("video already exists");
+      reject();
+      return;
+    }
+
+    db.get("videos")
+      .push({
+        ...video,
+      })
+      .write();
+    resolve({ success: "success" });
+  } catch (err) {}
+}
+
+async function downloadVideo(url, folder, videoMeta) {
+  const TITLE_CHARACTER_LIMIT = 50;
+
+  return new Promise(async (resolve, reject) => {
+    try {
       const _title = videoMeta.collector[0].text.replace(/[^a-zA-Z0-9 ]/g, "");
       const title =
         _title.length >= TITLE_CHARACTER_LIMIT
@@ -39,6 +91,9 @@ async function downloadVideo(url, folder) {
           : _title;
 
       const video = videoMeta.collector[0].videoUrl;
+
+      resolve(true);
+      return;
 
       await fs.mkdir(`${__dirname}/videos/${folder}`, { recursive: true });
 
@@ -70,7 +125,7 @@ async function mergeVideos(folder) {
     const _videos = await fs.readdir(path);
     const videos = _videos.map((e) => `${path}/${e}`);
 
-    // console.log("videos: ", videos);
+    console.log("videos: ", videos);
 
     videos.forEach(function (name) {
       console.log(name);
@@ -101,11 +156,19 @@ Credits:
 */
 }
 
-async function downloadVideos(urls, folder = `compilation`) {
+/* 
+
+1. Download videos
+
+*/
+async function processVideos(urls, folder = `compilation`) {
   return new Promise(async (resolve, reject) => {
     for (const [i, url] of urls.entries()) {
       try {
-        await downloadVideo(url, folder);
+        const videoMeta = await getTikTokMetaData(url);
+
+        await downloadVideo(url, folder, videoMeta);
+        await saveVideoToDatabase(url, videoMeta);
 
         if (i >= urls.length - 1) {
           console.log(`\n${urls.length} videos downloaded successfully!`);
@@ -126,11 +189,13 @@ async function downloadVideos(urls, folder = `compilation`) {
  */
 
 async function createVideoCompilation(urls, title, folder = `test`) {
+  const path = `${__dirname}/videos/${folder}`;
+
   return new Promise(async (resolve, reject) => {
     try {
-      await downloadVideos(urls, folder);
+      await processVideos(urls, folder);
       await mergeVideos(folder);
-      resolve(true);
+      resolve({ folder: path });
     } catch (err) {
       reject(err);
     }
@@ -139,5 +204,7 @@ async function createVideoCompilation(urls, title, folder = `test`) {
 
 module.exports = {
   createVideoCompilation: createVideoCompilation,
+  downloadVideo: downloadVideo,
   mergeVideos: mergeVideos,
+  processVideos: processVideos,
 };

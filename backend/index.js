@@ -4,13 +4,15 @@ const lowDb = require("lowdb");
 const fs = require("fs-extra");
 
 const FileSync = require("lowdb/adapters/FileSync");
-const { createVideoCompilation } = require("./utils");
-
-var fluent_ffmpeg = require("fluent-ffmpeg");
+const {
+  createVideoCompilation,
+  downloadVideo,
+  processVideos,
+} = require("./utils");
 
 const db = lowDb(new FileSync("db.json"));
 
-db.defaults({ users: [] }).write();
+db.defaults({ videos: [] }).write();
 
 const app = express();
 
@@ -52,7 +54,7 @@ app.post("/", async (req, res) => {
   try {
     const response = await createVideoCompilation(videos);
     console.log(response);
-    return res.send({ success: "success" });
+    return res.send({ folder: response.folder });
   } catch (error) {
     return res.status(500).send({ error });
   }
@@ -66,6 +68,6 @@ app.post("/", async (req, res) => {
 
   /* === */
 
-  await createVideoCompilation(videos);
+  await processVideos(videos);
   // process.exit(0);
 })();

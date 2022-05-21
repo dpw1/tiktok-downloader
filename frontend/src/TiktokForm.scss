@@ -1,0 +1,20 @@
+.TiktokForm {
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  display: block;
+  margin-top: 40px;
+
+  &-textarea {
+    width: 100%;
+    display: block;
+  }
+
+  &-input {
+    margin-bottom: 10px;
+  }
+
+  &-alert {
+    margin-top: 20px;
+  }
+}
