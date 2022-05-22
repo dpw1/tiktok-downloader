@@ -72,6 +72,38 @@ app.post("/download", async (req, res) => {
   }
 });
 
+/* Get total time */
+app.post("/totaltime", async (req, res) => {
+  if (!req.body.hasOwnProperty("videos")) {
+    return res.send({ error: "No videos received" });
+  }
+
+  const videos = req.body.videos;
+
+  for (const [index, video] of videos.entries()) {
+    if (!video.includes("tiktok") || !video.includes("@")) {
+      return res.status(404).send({
+        error: `The URL at line ${index + 1} is incorrect.`,
+      });
+    }
+
+    if (!video || video.trim() === "") {
+      return res.status(404).send({
+        error: `Line ${index + 1} is empty.`,
+      });
+    }
+  }
+
+  try {
+    console.log("getting", videos);
+    const length = await getTotalTime(videos);
+    console.log("Total time: ", length);
+    return res.send({ length });
+  } catch (error) {
+    return res.status(500).send({ error });
+  }
+});
+
 (async () => {
   const videos = [
     `https://www.tiktok.com/@maditasbibliotheca/video/7077915775994023173`,
@@ -84,7 +116,6 @@ app.post("/download", async (req, res) => {
   /* === */
 
   const time = await getTotalTime(videos);
-  console.log(time);
   // await createVideoCompilation(videos);
   // await mergeVideos(`compilation_video`);
   // process.exit(0);

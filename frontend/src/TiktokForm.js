@@ -12,9 +12,16 @@ function TiktokForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [length, setLength] = useState("");
 
   const [folderName, setFolderName] = useStickyState("@folderName", "");
   const [videoURLs, setVideoURLs] = useStickyState("@videoURLs", "");
+
+  function resetStates() {
+    setSuccess("");
+    setLoading(false);
+    setError(false);
+  }
 
   function handleDisableButton() {
     if (loading) {
@@ -26,6 +33,33 @@ function TiktokForm() {
     }
 
     return false;
+  }
+
+  async function getTotalTime() {
+    const $urls = document.querySelector(`#tiktokURLs`);
+    const urls = $urls.value.split("\n").filter((e) => e !== "");
+
+    return new Promise(async (resolve, reject) => {
+      const URL = `http://localhost:5000/totaltime`;
+      const settings = {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ videos: urls }),
+      };
+
+      const fetchResponse = await fetch(URL, settings);
+      const data = await fetchResponse.json();
+      if (data.hasOwnProperty("error")) {
+        console.log("total time", fetchResponse);
+
+        setError(data.error);
+        reject();
+      }
+      resolve(data);
+    });
   }
 
   async function downloadVideos() {
@@ -65,7 +99,8 @@ function TiktokForm() {
         onSubmit={async (e) => {
           e.preventDefault();
           try {
-            // setLoading(true);
+            resetStates();
+            setLoading(true);
             const res = await downloadVideos();
             setLoading(false);
             setSuccess(res.folder);
@@ -113,12 +148,28 @@ function TiktokForm() {
           label="Make video compilation (not working)"
         /> */}
 
+        <div className="TiktokForm-info">
+          {length && length.length >= 1 && (
+            <p>
+              Videos compilation time: <b>{length}</b>
+            </p>
+          )}
+        </div>
         <div className="TiktokForm-buttons">
           <Button disabled={handleDisableButton()} type="submit">
-            {loading ? "Loading..." : "Send"}
+            {loading ? "Loading..." : "Download"}
           </Button>
 
-          <Button disabled={handleDisableButton()} type="submit">
+          <Button
+            onClick={async (e) => {
+              e.preventDefault();
+
+              const total = await getTotalTime();
+
+              setLength(total.length);
+            }}
+            disabled={handleDisableButton()}
+            type="submit">
             Get total time
           </Button>
         </div>
