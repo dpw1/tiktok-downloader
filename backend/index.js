@@ -4,7 +4,11 @@ const lowDb = require("lowdb");
 const fs = require("fs-extra");
 
 const FileSync = require("lowdb/adapters/FileSync");
-const { createVideoCompilation, getTotalTime } = require("./utils");
+const {
+  createVideoCompilation,
+  getTotalTime,
+  mergeVideos,
+} = require("./utils");
 
 /* Database init */
 const db = lowDb(new FileSync("db.json"));
@@ -56,12 +60,14 @@ app.post("/download", async (req, res) => {
 
     let found = videosDatabase.filter((e) => e.url === video)[0];
 
-    if (found) {
+    if (found && found.hasOwnProperty("title")) {
       return res.status(404).send({
         error: `Line ${index + 1} already exists in database.`,
       });
     }
   }
+
+  console.log("download...");
 
   try {
     const response = await createVideoCompilation(videos, title);
@@ -115,8 +121,7 @@ app.post("/totaltime", async (req, res) => {
   // ];
   /* === */
 
-  const time = await getTotalTime(videos);
   // await createVideoCompilation(videos);
-  // await mergeVideos(`compilation_video`);
+  await mergeVideos(`tiktok_compilation_1`);
   // process.exit(0);
 })();

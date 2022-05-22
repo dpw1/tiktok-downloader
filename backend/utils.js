@@ -124,15 +124,15 @@ async function mergeVideos(folder) {
         .filter((e) => e.includes(".mp4"))
         .map((e) => `-i "${e}"`);
 
-      console.log("videosssssssssssssssss", videos);
-
       const width = `1280`;
       const height = `720`;
       const output = `compilation.mp4`;
 
       /* Generate ffmpeg code to merge videos */
       var vout1 = videos
-        .map((e, i) => `[${i}:v]scale=${width}:${height}[vout${i}];`)
+        .map(
+          (e, i) => `[${i}:v]scale=${width}:${height},setdar=9/16[vout${i}];`,
+        )
         .join("");
       var vout2 = videos.map((e, i) => `[vout${i}][${i}:a]`).join("");
       var vout3 = `concat=n=${videos.length}:v=1:a=1[v][a]`;
@@ -143,6 +143,7 @@ async function mergeVideos(folder) {
         " ",
       )} -preset ultrafast -filter_complex ${vout} -map "[v]" -map "[a]" -c:v libx264 -c:a aac -movflags +faststart ${output}`;
 
+      console.log(`\n\n\n========== CODE ============\n\n\n${code}\n\n\n`);
       /* Change to folder where videos are located */
       process.chdir(path);
 
@@ -218,7 +219,6 @@ async function processVideos(urls, folder = DEFAULT_FOLDER) {
     for (const [i, url] of urls.entries()) {
       try {
         const videoMeta = await getTikTokMetaData(url);
-        f;
 
         await downloadVideo(url, folder, videoMeta);
         await saveVideoToDatabase(url, videoMeta);
@@ -250,6 +250,7 @@ async function createVideoCompilation(urls, folder) {
     try {
       await processVideos(urls, folder);
       await mergeVideos(folder);
+
       resolve({ folder: path });
     } catch (err) {
       reject(err);
