@@ -11,8 +11,8 @@ const {
   mergeVideos,
 } = require("./utils");
 
+/* Database init */
 const db = lowDb(new FileSync("db.json"));
-
 db.defaults({ videos: [] }).write();
 
 const app = express();
@@ -37,6 +37,14 @@ app.post("/", async (req, res) => {
     return res.send({ error: "No videos received" });
   }
 
+  if (!req.body.hasOwnProperty("title")) {
+    return res.send({ error: "No folder title received" });
+  }
+
+  const videosDatabase = db.get("videos").value();
+
+  console.log(videosDatabase);
+
   const title = req.body.title;
   const videos = req.body.videos;
 
@@ -52,11 +60,19 @@ app.post("/", async (req, res) => {
         error: `Line ${index + 1} is empty.`,
       });
     }
+
+    let found = videosDatabase.filter((e) => e.url === video)[0];
+
+    if (found) {
+      return res.status(404).send({
+        error: `Line ${index + 1} already exists in database.`,
+      });
+    }
   }
 
   try {
     const response = await createVideoCompilation(videos, title);
-    console.log(response);
+    console.log("response: ", response);
     return res.send({ folder: response.folder });
   } catch (error) {
     return res.status(500).send({ error });

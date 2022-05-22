@@ -16,12 +16,26 @@ function TiktokForm() {
   const [folderName, setFolderName] = useStickyState("@folderName", "");
   const [videoURLs, setVideoURLs] = useStickyState("@videoURLs", "");
 
-  async function downloadVideos(user) {
-    const $title = document.querySelector(`#videoName`);
+  function handleDisableButton() {
+    if (loading) {
+      return true;
+    }
+
+    if (!folderName || folderName.trim() === "") {
+      return true;
+    }
+
+    return false;
+  }
+
+  async function downloadVideos() {
+    const $title = document.querySelector(`#folderName`);
     const title = $title.value.trim();
 
     const $urls = document.querySelector(`#tiktokURLs`);
     const urls = $urls.value.split("\n").filter((e) => e !== "");
+
+    console.log(urls);
 
     return new Promise(async (resolve, reject) => {
       const URL = `http://localhost:5000`;
@@ -51,13 +65,17 @@ function TiktokForm() {
         onSubmit={async (e) => {
           e.preventDefault();
           try {
-            setLoading(true);
+            // setLoading(true);
             const res = await downloadVideos();
             setLoading(false);
             setSuccess(res.folder);
             console.log("res", res);
           } catch (err) {
-            console.log("erro", err);
+            setLoading(false);
+
+            if (err !== undefined && err.length >= 1) {
+              setError(err);
+            }
           }
         }}>
         <Row>
@@ -71,7 +89,7 @@ function TiktokForm() {
                   setFolderName(e.target.value);
                 }}
               />
-              <label htmlFor="folderName">Video name</label>
+              <label htmlFor="folderName">Folder name</label>
             </Form.Floating>
             <Form.Floating className="TiktokForm-input TiktokForm-textarea">
               <Form.Control
@@ -88,7 +106,7 @@ function TiktokForm() {
             </Form.Floating>
           </Col>
         </Row>
-        <Button disabled={loading} type="submit">
+        <Button disabled={handleDisableButton()} type="submit">
           {loading ? "Loading..." : "Send"}
         </Button>
 

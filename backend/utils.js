@@ -108,7 +108,7 @@ async function downloadVideo(url, folder, videoMeta) {
           file.close();
           console.log(`${title} downloaded.\n`);
 
-          resolve(true);
+          resolve({ success: "success" });
         });
       });
     } catch (error) {
@@ -129,28 +129,38 @@ async function mergeVideos(folder) {
 
       const _videos = await fs.readdir(path);
 
-      console.log(path);
-
+      /* Get all videos in folder */
       const videos = _videos
         .filter((e) => e.includes(".mp4"))
         .map((e) => `-i "${e}"`);
 
       console.log("videosssssssssssssssss", videos);
+
       const width = `1280`;
       const height = `720`;
       const output = `compilation.mp4`;
 
+      /* Generate ffmpeg code to merge videos */
+      var vout1 = videos
+        .map((e, i) => `[${i}:v]scale=${width}:${height}[vout${i}];`)
+        .join("");
+      var vout2 = videos.map((e, i) => `[vout${i}][${i}:a]`).join("");
+      var vout3 = `concat=n=${videos.length}:v=1:a=1[v][a]`;
+
+      var vout = `"${vout1}${vout2}${vout3}"`;
+
       const code = `ffmpeg -y ${videos.join(
         " ",
-      )} -preset ultrafast -filter_complex "[0:v]scale=${width}:${height}[vout];[1:v]scale=${width}:${height}[vout2];[vout][0:a][vout2][1:a]concat=n=2:v=1:a=1[v][a]" -map "[v]" -map "[a]" -c:v libx264 -c:a aac -movflags +faststart ${output}`;
+      )} -preset ultrafast -filter_complex ${vout} -map "[v]" -map "[a]" -c:v libx264 -c:a aac -movflags +faststart ${output}`;
 
+      /* Change to folder where videos are located */
       process.chdir(path);
-      console.log(code);
+
+      console.log("==================== Code:\n\n", code);
 
       if (shell.exec(code).code === 0) {
         console.log(`${videos.length} Videos merged successfully!`);
-        resolve();
-        shell.exit(1);
+        resolve({ success: "success" });
       } else {
         console.log("error", shell.error());
 
