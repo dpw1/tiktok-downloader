@@ -124,56 +124,42 @@ function replaceAll(str, find, replace) {
 
 async function mergeVideos(folder) {
   return new Promise(async (resolve, reject) => {
-    const path = `${__dirname}/videos/${folder}`;
+    try {
+      const path = `${process.cwd()}\\videos\\${folder}`;
 
-    const _videos = await fs.readdir(path);
-    const videos = _videos
-      .filter((e) => e.includes(".mp4"))
-      .map((e) => `-i ${e}`);
+      const _videos = await fs.readdir(path);
 
-    const output = `compilation.mp4`;
+      console.log(path);
 
-    const code = `ffmpeg -y ${videos.join(
-      " ",
-    )} -preset ultrafast -filter_complex "[0:v]scale=1920:1080[vout];[1:v]scale=1920:1080[vout2];[vout][0:a][vout2][1:a]concat=n=2:v=1:a=1[v][a]" -map "[v]" -map "[a]" -c:v libx264 -c:a aac -movflags +faststart ${output}`;
+      const videos = _videos
+        .filter((e) => e.includes(".mp4"))
+        .map((e) => `-i "${e}"`);
 
-    process.chdir(path);
+      console.log("videosssssssssssssssss", videos);
+      const width = `1280`;
+      const height = `720`;
+      const output = `compilation.mp4`;
 
-    if (shell.exec(code).code === 0) {
-      console.log("success!");
-      resolve();
-      shell.exit(1);
+      const code = `ffmpeg -y ${videos.join(
+        " ",
+      )} -preset ultrafast -filter_complex "[0:v]scale=${width}:${height}[vout];[1:v]scale=${width}:${height}[vout2];[vout][0:a][vout2][1:a]concat=n=2:v=1:a=1[v][a]" -map "[v]" -map "[a]" -c:v libx264 -c:a aac -movflags +faststart ${output}`;
+
+      process.chdir(path);
+      console.log(code);
+
+      if (shell.exec(code).code === 0) {
+        console.log(`${videos.length} Videos merged successfully!`);
+        resolve();
+        shell.exit(1);
+      } else {
+        console.log("error", shell.error());
+
+        reject({ error: "FFMmpeg error" });
+        shell.exit(1);
+      }
+    } catch (err) {
+      reject({ error: "err" });
     }
-
-    // await fs.writeFile(bat, code);
-
-    // var _bat = require.resolve(bat);
-
-    // console.log(_bat);
-
-    // child_process.exec(_bat, function (error, stdout, stderr) {
-    //   console.log("Merging completed.");
-    // });
-
-    return;
-    // var mergedVideo = fluent_ffmpeg();
-    // console.log("videos: ", videos);
-
-    // videos.forEach(function (name) {
-    //   console.log(name);
-    //   mergedVideo = mergedVideo.addInput(name);
-
-    // });
-
-    // mergedVideo
-    //   .mergeToFile(`${path}/compilation.mp4`, "./tmp/")
-    //   .on("error", function (err) {
-    //     reject(err.message);
-    //   })
-    //   .on("end", function () {
-    //     console.log(`${videos.length} videos merged successfully.`);
-    //     resolve();
-    //   });
   });
 }
 
@@ -221,8 +207,10 @@ async function processVideos(urls, folder = DEFAULT_FOLDER) {
  * 4. Create hashtags
  */
 
-async function createVideoCompilation(urls, title, folder = DEFAULT_FOLDER) {
+async function createVideoCompilation(urls, folder) {
   const path = `${__dirname}/videos/${folder}`;
+
+  console.log("folder: ", folder);
 
   return new Promise(async (resolve, reject) => {
     try {

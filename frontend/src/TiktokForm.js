@@ -6,10 +6,15 @@ import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Alert from "react-bootstrap/Alert";
 
+import { useStatePersist as useStickyState } from "use-state-persist";
+
 function TiktokForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [folderName, setFolderName] = useStickyState("@folderName", "");
+  const [videoURLs, setVideoURLs] = useStickyState("@videoURLs", "");
 
   async function downloadVideos(user) {
     const $title = document.querySelector(`#videoName`);
@@ -26,7 +31,7 @@ function TiktokForm() {
           Accept: "application/json",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ videos: urls }),
+        body: JSON.stringify({ title, videos: urls }),
       };
 
       const fetchResponse = await fetch(URL, settings);
@@ -58,13 +63,22 @@ function TiktokForm() {
         <Row>
           <Col>
             <Form.Floating className="TiktokForm-input">
-              <Form.Control id="videoName" placeholder="Video name" />
-              <label htmlFor="videoName">Video name</label>
+              <Form.Control
+                id="folderName"
+                placeholder="Folder name"
+                value={folderName}
+                onChange={(e) => {
+                  setFolderName(e.target.value);
+                }}
+              />
+              <label htmlFor="folderName">Video name</label>
             </Form.Floating>
             <Form.Floating className="TiktokForm-input TiktokForm-textarea">
               <Form.Control
                 id="tiktokURLs"
                 as="textarea"
+                value={videoURLs}
+                onChange={(e) => setVideoURLs(e.target.value)}
                 placeholder="Enter the video URLs (one per line)"
                 style={{ height: "100px" }}
               />

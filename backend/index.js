@@ -37,23 +37,25 @@ app.post("/", async (req, res) => {
     return res.send({ error: "No videos received" });
   }
 
+  const title = req.body.title;
   const videos = req.body.videos;
 
   for (const [index, video] of videos.entries()) {
-    if (
-      !video.includes("tiktok") ||
-      !video.includes("@") ||
-      !video ||
-      video.trim() === ""
-    ) {
+    if (!video.includes("tiktok") || !video.includes("@")) {
       return res.status(404).send({
         error: `The URL at line ${index + 1} is incorrect.`,
+      });
+    }
+
+    if (!video || video.trim() === "") {
+      return res.status(404).send({
+        error: `Line ${index + 1} is empty.`,
       });
     }
   }
 
   try {
-    const response = await createVideoCompilation(videos);
+    const response = await createVideoCompilation(videos, title);
     console.log(response);
     return res.send({ folder: response.folder });
   } catch (error) {
@@ -66,15 +68,12 @@ app.post("/", async (req, res) => {
   //   `https://www.tiktok.com/@maditasbibliotheca/video/7077915775994023173`,
   //   `https://www.tiktok.com/@caitsbooks/video/7086470926451133739`,
   // ];
-
   // const videos = [
   //   `https://www.tiktok.com/@vitekjanda/video/6792182951573474565`,
   //   `https://www.tiktok.com/@madelinestraveling/video/6957661815920676101`,
   // ];
-
   /* === */
-
   // await createVideoCompilation(videos);
-  await mergeVideos(`compilation_video`);
+  // await mergeVideos(`compilation_video`);
   // process.exit(0);
 })();
