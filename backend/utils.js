@@ -64,16 +64,6 @@ async function saveVideoToDatabase(url, videoMeta) {
   };
 
   try {
-    const videos = db.get("videos").value();
-
-    let found = videos.filter((e) => e.id === video.id)[0];
-
-    if (found) {
-      console.log("video already exists (doing nothing)");
-      // reject("Video already exists");
-      // return;
-    }
-
     db.get("videos")
       .push({
         ...video,
@@ -173,6 +163,10 @@ async function mergeVideos(folder) {
   });
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function generateDescription(urls) {
   /* 
 
@@ -185,6 +179,35 @@ Credits:
 */
 }
 
+function convertSecondsToMinutes(seconds) {
+  const format = (val) => `0${Math.floor(val)}`.slice(-2);
+  const hours = seconds / 3600;
+  const minutes = (seconds % 3600) / 60;
+
+  return [hours, minutes, seconds % 60].map(format).join(":");
+}
+
+async function getTotalTime(urls) {
+  return new Promise(async (resolve, reject) => {
+    var totalSeconds = [];
+
+    for (const [i, url] of urls.entries()) {
+      const data = await getTikTokMetaData(url);
+
+      const seconds = data.collector[0].videoMeta.duration;
+      totalSeconds = [...totalSeconds, seconds];
+      await sleep(50);
+
+      if (i >= urls.length - 1) {
+        const total = convertSecondsToMinutes(
+          totalSeconds.reduce((a, b) => a + b),
+        );
+        resolve(total);
+      }
+    }
+  });
+}
+
 /* 
 
 1. Download videos
@@ -195,6 +218,7 @@ async function processVideos(urls, folder = DEFAULT_FOLDER) {
     for (const [i, url] of urls.entries()) {
       try {
         const videoMeta = await getTikTokMetaData(url);
+        f;
 
         await downloadVideo(url, folder, videoMeta);
         await saveVideoToDatabase(url, videoMeta);
@@ -238,4 +262,5 @@ module.exports = {
   downloadVideo: downloadVideo,
   mergeVideos: mergeVideos,
   processVideos: processVideos,
+  getTotalTime: getTotalTime,
 };

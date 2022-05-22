@@ -4,12 +4,7 @@ const lowDb = require("lowdb");
 const fs = require("fs-extra");
 
 const FileSync = require("lowdb/adapters/FileSync");
-const {
-  createVideoCompilation,
-  downloadVideo,
-  processVideos,
-  mergeVideos,
-} = require("./utils");
+const { createVideoCompilation, getTotalTime } = require("./utils");
 
 /* Database init */
 const db = lowDb(new FileSync("db.json"));
@@ -32,7 +27,7 @@ app.get("/", (req, res) => {
 });
 
 /* Download videos */
-app.post("/", async (req, res) => {
+app.post("/download", async (req, res) => {
   if (!req.body.hasOwnProperty("videos")) {
     return res.send({ error: "No videos received" });
   }
@@ -42,8 +37,6 @@ app.post("/", async (req, res) => {
   }
 
   const videosDatabase = db.get("videos").value();
-
-  console.log(videosDatabase);
 
   const title = req.body.title;
   const videos = req.body.videos;
@@ -80,15 +73,18 @@ app.post("/", async (req, res) => {
 });
 
 (async () => {
-  // const videos = [
-  //   `https://www.tiktok.com/@maditasbibliotheca/video/7077915775994023173`,
-  //   `https://www.tiktok.com/@caitsbooks/video/7086470926451133739`,
-  // ];
+  const videos = [
+    `https://www.tiktok.com/@maditasbibliotheca/video/7077915775994023173`,
+    `https://www.tiktok.com/@caitsbooks/video/7086470926451133739`,
+  ];
   // const videos = [
   //   `https://www.tiktok.com/@vitekjanda/video/6792182951573474565`,
   //   `https://www.tiktok.com/@madelinestraveling/video/6957661815920676101`,
   // ];
   /* === */
+
+  const time = await getTotalTime(videos);
+  console.log(time);
   // await createVideoCompilation(videos);
   // await mergeVideos(`compilation_video`);
   // process.exit(0);

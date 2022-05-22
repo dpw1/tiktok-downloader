@@ -38,7 +38,7 @@ function TiktokForm() {
     console.log(urls);
 
     return new Promise(async (resolve, reject) => {
-      const URL = `http://localhost:5000`;
+      const URL = `http://localhost:5000/download`;
       const settings = {
         method: "POST",
         headers: {
@@ -51,7 +51,7 @@ function TiktokForm() {
       const fetchResponse = await fetch(URL, settings);
       const data = await fetchResponse.json();
       if (data.hasOwnProperty("error")) {
-        console.log(data.error);
+        console.log(fetchResponse);
 
         setError(data.error);
         reject();
@@ -106,9 +106,22 @@ function TiktokForm() {
             </Form.Floating>
           </Col>
         </Row>
-        <Button disabled={handleDisableButton()} type="submit">
-          {loading ? "Loading..." : "Send"}
-        </Button>
+
+        {/* <Form.Check
+          type="switch"
+          id="custom-switch"
+          label="Make video compilation (not working)"
+        /> */}
+
+        <div className="TiktokForm-buttons">
+          <Button disabled={handleDisableButton()} type="submit">
+            {loading ? "Loading..." : "Send"}
+          </Button>
+
+          <Button disabled={handleDisableButton()} type="submit">
+            Get total time
+          </Button>
+        </div>
 
         {/* Error alert */}
         <Alert
