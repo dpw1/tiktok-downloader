@@ -2,6 +2,8 @@ const TikTokScraper = require("tiktok-scraper");
 const fs = require("fs-extra");
 const http = require("https");
 const fluent_ffmpeg = require("fluent-ffmpeg");
+const child_process = require("child_process");
+var shell = require("shelljs");
 
 const FileSync = require("lowdb/adapters/FileSync");
 const lowDb = require("lowdb");
@@ -10,6 +12,9 @@ const { resolve } = require("path");
 /* Database init */
 const db = lowDb(new FileSync("db.json"));
 db.defaults({ videos: [] }).write();
+
+/* ======================= */
+const DEFAULT_FOLDER = `compilation_video`;
 
 /* ======================== */
 
@@ -63,11 +68,10 @@ async function saveVideoToDatabase(url, videoMeta) {
 
     let found = videos.filter((e) => e.id === video.id)[0];
 
-    console.log(found);
     if (found) {
-      console.log("video already exists");
-      reject();
-      return;
+      console.log("video already exists (doing nothing)");
+      // reject("Video already exists");
+      // return;
     }
 
     db.get("videos")
@@ -92,9 +96,6 @@ async function downloadVideo(url, folder, videoMeta) {
 
       const video = videoMeta.collector[0].videoUrl;
 
-      resolve(true);
-      return;
-
       await fs.mkdir(`${__dirname}/videos/${folder}`, { recursive: true });
 
       const file = await fs.createWriteStream(`videos/${folder}/${title}.mp4`);
@@ -117,30 +118,62 @@ async function downloadVideo(url, folder, videoMeta) {
   });
 }
 
+function replaceAll(str, find, replace) {
+  return str.split(find).join(replace);
+}
+
 async function mergeVideos(folder) {
   return new Promise(async (resolve, reject) => {
     const path = `${__dirname}/videos/${folder}`;
 
-    var mergedVideo = fluent_ffmpeg();
     const _videos = await fs.readdir(path);
-    const videos = _videos.map((e) => `${path}/${e}`);
+    const videos = _videos
+      .filter((e) => e.includes(".mp4"))
+      .map((e) => `-i ${e}`);
 
-    console.log("videos: ", videos);
+    const output = `compilation.mp4`;
 
-    videos.forEach(function (name) {
-      console.log(name);
-      mergedVideo = mergedVideo.addInput(name);
-    });
+    const code = `ffmpeg -y ${videos.join(
+      " ",
+    )} -preset ultrafast -filter_complex "[0:v]scale=1920:1080[vout];[1:v]scale=1920:1080[vout2];[vout][0:a][vout2][1:a]concat=n=2:v=1:a=1[v][a]" -map "[v]" -map "[a]" -c:v libx264 -c:a aac -movflags +faststart ${output}`;
 
-    mergedVideo
-      .mergeToFile(`${path}/compilation.mp4`, "./tmp/")
-      .on("error", function (err) {
-        reject(err.message);
-      })
-      .on("end", function () {
-        console.log(`${videos.length} videos merged successfully.`);
-        resolve();
-      });
+    process.chdir(path);
+
+    if (shell.exec(code).code === 0) {
+      console.log("success!");
+      resolve();
+      shell.exit(1);
+    }
+
+    // await fs.writeFile(bat, code);
+
+    // var _bat = require.resolve(bat);
+
+    // console.log(_bat);
+
+    // child_process.exec(_bat, function (error, stdout, stderr) {
+    //   console.log("Merging completed.");
+    // });
+
+    return;
+    // var mergedVideo = fluent_ffmpeg();
+    // console.log("videos: ", videos);
+
+    // videos.forEach(function (name) {
+    //   console.log(name);
+    //   mergedVideo = mergedVideo.addInput(name);
+
+    // });
+
+    // mergedVideo
+    //   .mergeToFile(`${path}/compilation.mp4`, "./tmp/")
+    //   .on("error", function (err) {
+    //     reject(err.message);
+    //   })
+    //   .on("end", function () {
+    //     console.log(`${videos.length} videos merged successfully.`);
+    //     resolve();
+    //   });
   });
 }
 
@@ -161,7 +194,7 @@ Credits:
 1. Download videos
 
 */
-async function processVideos(urls, folder = `compilation`) {
+async function processVideos(urls, folder = DEFAULT_FOLDER) {
   return new Promise(async (resolve, reject) => {
     for (const [i, url] of urls.entries()) {
       try {
@@ -188,7 +221,7 @@ async function processVideos(urls, folder = `compilation`) {
  * 4. Create hashtags
  */
 
-async function createVideoCompilation(urls, title, folder = `test`) {
+async function createVideoCompilation(urls, title, folder = DEFAULT_FOLDER) {
   const path = `${__dirname}/videos/${folder}`;
 
   return new Promise(async (resolve, reject) => {

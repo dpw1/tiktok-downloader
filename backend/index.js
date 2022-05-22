@@ -8,6 +8,7 @@ const {
   createVideoCompilation,
   downloadVideo,
   processVideos,
+  mergeVideos,
 } = require("./utils");
 
 const db = lowDb(new FileSync("db.json"));
@@ -61,13 +62,19 @@ app.post("/", async (req, res) => {
 });
 
 (async () => {
-  const videos = [
-    `https://www.tiktok.com/@maditasbibliotheca/video/7077915775994023173`,
-    `https://www.tiktok.com/@caitsbooks/video/7086470926451133739`,
-  ];
+  // const videos = [
+  //   `https://www.tiktok.com/@maditasbibliotheca/video/7077915775994023173`,
+  //   `https://www.tiktok.com/@caitsbooks/video/7086470926451133739`,
+  // ];
+
+  // const videos = [
+  //   `https://www.tiktok.com/@vitekjanda/video/6792182951573474565`,
+  //   `https://www.tiktok.com/@madelinestraveling/video/6957661815920676101`,
+  // ];
 
   /* === */
 
-  await processVideos(videos);
+  // await createVideoCompilation(videos);
+  await mergeVideos(`compilation_video`);
   // process.exit(0);
 })();
