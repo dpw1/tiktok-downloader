@@ -26,8 +26,8 @@ app.listen(PORT, () => {
 });
 
 app.get("/", (req, res) => {
-  // const data = db.get("users").value();
-  return res.json({ data: "ello" });
+  const videos = db.get("videos").value();
+  return res.json({ videos: "test" });
 });
 
 /* Download videos */
@@ -122,6 +122,6 @@ app.post("/totaltime", async (req, res) => {
   /* === */
 
   // await createVideoCompilation(videos);
-  await mergeVideos(`tiktok_compilation_1`);
+  // await mergeVideos(`tiktok_compilation_1`);
   // process.exit(0);
 })();

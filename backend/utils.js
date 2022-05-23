@@ -78,11 +78,7 @@ async function downloadVideo(url, folder, videoMeta) {
 
   return new Promise(async (resolve, reject) => {
     try {
-      const _title = videoMeta.collector[0].text.replace(/[^a-zA-Z0-9 ]/g, "");
-      const title =
-        _title.length >= TITLE_CHARACTER_LIMIT
-          ? `${_title.substring(0, TITLE_CHARACTER_LIMIT)}_`
-          : _title;
+      const title = videoMeta.collector[0].id;
 
       const video = videoMeta.collector[0].videoUrl;
 
