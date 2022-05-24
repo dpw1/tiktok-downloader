@@ -4,6 +4,7 @@ const http = require("https");
 const fluent_ffmpeg = require("fluent-ffmpeg");
 const child_process = require("child_process");
 var shell = require("shelljs");
+const path_library = require("path");
 
 const FileSync = require("lowdb/adapters/FileSync");
 const lowDb = require("lowdb");
@@ -128,6 +129,86 @@ function replaceAll(str, find, replace) {
   return str.split(find).join(replace);
 }
 
+/* Adds a video at the end of all videos within a certain folder.
+
+This video is located under assets/watermark.mp4
+*/
+async function addEndingCreditsToVideos(folder) {
+  return new Promise(async (resolve, reject) => {
+    const watermark = `${process.cwd()}\\assets\\watermark.mp4`;
+
+    const path = `${process.cwd()}\\videos\\${folder}`;
+
+    const _videos = await fs.readdir(path);
+
+    /* Get all videos in folder */
+    const videos = _videos
+      .filter(
+        (e) =>
+          e.includes(".mp4") &&
+          !e.includes("compilation.mp4") &&
+          !e.includes("watermark.mp4"),
+      )
+      .map((e) => `${e}`);
+
+    /* Move watermark video to same folder */
+    if (!fs.existsSync(`${path}\\watermark.mp4`)) {
+      await fs.copyFile(watermark, `${path}\\watermark.mp4`, (err) => {
+        if (err) throw err;
+        console.log("Watermark video copied to local folder.");
+      });
+    } else {
+      console.log("Watermark video found.");
+    }
+
+    /* Add ending credits to each video */
+    for (var [i, video] of videos.entries()) {
+      const output = `${video.replace(".mp4", "")}_watermark.mp4`;
+
+      const width = `1280`;
+      const height = `720`;
+
+      const currentVideos = [`-i "${video}"`, `-i "watermark.mp4"`];
+
+      /* Generate ffmpeg code to merge videos */
+      var vout1 = currentVideos
+        .map(
+          (e, i) => `[${i}:v]scale=${width}:${height},setdar=9/
+        16[vout${i}];`,
+        )
+        .join("");
+      var vout2 = currentVideos.map((e, i) => `[vout${i}][${i}:a]`).join("");
+      var vout3 = `concat=n=${currentVideos.length}:v=1:a=1[v][a]`;
+      var vout = `"${vout1}${vout2}${vout3}"`;
+
+      const _code = `ffmpeg -y ${currentVideos.join(
+        " ",
+      )} -preset ultrafast -filter_complex ${vout} -map "[v]" -map "[a]" -c:v libx264 -c:a aac -movflags +faststart ${output}`;
+
+      const code = _code.split(/\s{1,}/g).join(" ");
+
+      console.log(`\n\n\n========== CODE ============\n\n\n${code}\n\n\n`);
+      /* Change to folder where videos are located */
+      process.chdir(path);
+
+      if (shell.exec(code).code === 0) {
+        console.log(`${output} watermark added successfully!`);
+        resolve({ success: "success" });
+      } else {
+        console.log("error", shell.error());
+
+        reject({ error: "FFMmpeg error" });
+        shell.exit(1);
+      }
+
+      if (i >= videos.length - 1) {
+        console.log(`${videos.length} video(s) watermarked successfully!`);
+        resolve(total);
+      }
+    }
+  });
+}
+
 async function getInfoFromVideoFolder(folder) {
   return new Promise(async (resolve, reject) => {
     const path = `${process.cwd()}\\videos\\${folder}`;
@@ -181,7 +262,7 @@ ${tags}
   });
 }
 
-async function mergeVideos(folder) {
+async function makeVideoCompilation(folder) {
   return new Promise(async (resolve, reject) => {
     try {
       const path = `${process.cwd()}\\videos\\${folder}`;
@@ -191,7 +272,12 @@ async function mergeVideos(folder) {
       /* Get all videos in folder */
       const videos = shuffle(
         _videos
-          .filter((e) => e.includes(".mp4") && !e.includes("compilation.mp4"))
+          .filter(
+            (e) =>
+              e.includes(".mp4") &&
+              !e.includes("compilation.mp4") &&
+              !e.includes("watermark.mp4"),
+          )
           .map((e) => `-i "${e}"`),
       );
 
@@ -205,6 +291,7 @@ async function mergeVideos(folder) {
           (e, i) => `[${i}:v]scale=${width}:${height},setdar=9/16[vout${i}];`,
         )
         .join("");
+
       var vout2 = videos.map((e, i) => `[vout${i}][${i}:a]`).join("");
       var vout3 = `concat=n=${videos.length}:v=1:a=1[v][a]`;
 
@@ -237,18 +324,6 @@ async function mergeVideos(folder) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function generateDescription(urls) {
-  /* 
-
-Credits:
-
-@mediasidajd
-@maksdjasda
-
-
-*/
 }
 
 function convertSecondsToMinutes(seconds) {
@@ -320,7 +395,7 @@ async function createVideoCompilation(urls, folder) {
   return new Promise(async (resolve, reject) => {
     try {
       await processVideos(urls, folder);
-      await mergeVideos(folder);
+      await makeVideoCompilation(folder);
 
       resolve({ folder: path });
     } catch (err) {
@@ -332,8 +407,9 @@ async function createVideoCompilation(urls, folder) {
 module.exports = {
   createVideoCompilation: createVideoCompilation,
   downloadVideo: downloadVideo,
-  mergeVideos: mergeVideos,
+  makeVideoCompilation: makeVideoCompilation,
   processVideos: processVideos,
   getTotalTime: getTotalTime,
   getInfoFromVideoFolder: getInfoFromVideoFolder,
+  addEndingCreditsToVideos: addEndingCreditsToVideos,
 };

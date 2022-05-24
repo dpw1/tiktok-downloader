@@ -8,7 +8,8 @@ const {
   createVideoCompilation,
   getTotalTime,
   getInfoFromVideoFolder,
-  mergeVideos,
+  makeVideoCompilation,
+  addEndingCreditsToVideos,
 } = require("./utils");
 
 /* Database init */
@@ -46,6 +47,7 @@ app.post("/download", async (req, res) => {
   const title = req.body.title;
   const videos = req.body.videos;
 
+  /* Error check */
   for (const [index, video] of videos.entries()) {
     if (!video.includes("tiktok") || !video.includes("@")) {
       return res.status(404).send({
@@ -68,8 +70,7 @@ app.post("/download", async (req, res) => {
     }
   }
 
-  console.log("download...");
-
+  /* Process videos */
   try {
     const response = await createVideoCompilation(videos, title);
     console.log("response: ", response);
@@ -123,8 +124,9 @@ app.post("/totaltime", async (req, res) => {
   /* === */
 
   // await createVideoCompilation(videos);
-  // await mergeVideos(`tiktok_compilation_1`);
   // process.exit(0);
-  const info = await getInfoFromVideoFolder(`tiktok_compilation_1`);
-  console.log(info);
+  // const info = await getInfoFromVideoFolder(`tiktok_compilation_2`);
+  // console.log(info);
+  await addEndingCreditsToVideos(`test`);
+  // await makeVideoCompilation(`test`);
 })();
