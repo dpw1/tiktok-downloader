@@ -7,6 +7,7 @@ const FileSync = require("lowdb/adapters/FileSync");
 const {
   createVideoCompilation,
   getTotalTime,
+  getInfoFromVideoFolder,
   mergeVideos,
 } = require("./utils");
 
@@ -27,7 +28,7 @@ app.listen(PORT, () => {
 
 app.get("/", (req, res) => {
   const videos = db.get("videos").value();
-  return res.json({ videos: "test" });
+  return res.json({ videos });
 });
 
 /* Download videos */
@@ -124,4 +125,6 @@ app.post("/totaltime", async (req, res) => {
   // await createVideoCompilation(videos);
   // await mergeVideos(`tiktok_compilation_1`);
   // process.exit(0);
+  const info = await getInfoFromVideoFolder(`tiktok_compilation_1`);
+  console.log(info);
 })();

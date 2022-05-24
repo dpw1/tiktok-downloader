@@ -51,6 +51,26 @@ async function getTikTokMetaData(url) {
   });
 }
 
+function shuffle(array) {
+  let currentIndex = array.length,
+    randomIndex;
+
+  // While there remain elements to shuffle...
+  while (currentIndex !== 0) {
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+
+  return array;
+}
+
 async function saveVideoToDatabase(url, videoMeta) {
   const video = {
     id: videoMeta.collector[0].id,
@@ -108,6 +128,59 @@ function replaceAll(str, find, replace) {
   return str.split(find).join(replace);
 }
 
+async function getInfoFromVideoFolder(folder) {
+  return new Promise(async (resolve, reject) => {
+    const path = `${process.cwd()}\\videos\\${folder}`;
+
+    const _videos = await fs.readdir(path);
+
+    /* Get all videos in folder */
+    const videos = _videos.filter(
+      (e) => e.includes(".mp4") && !e.includes("compilation.mp4"),
+    );
+
+    const videosDatabase = db.get("videos").value();
+
+    let found = [];
+
+    for (var [index, each] of videos.entries()) {
+      const video = videosDatabase.filter((e) => {
+        return each.includes(e.id);
+      })[0];
+
+      if (video) {
+        found = [...found, video];
+      }
+    }
+
+    let _tags = "";
+    let _credits = [];
+
+    for (var [index, each] of found.entries()) {
+      const tag = each.hashtags;
+      const credit = `${each.author}`;
+
+      _tags += tag;
+      _credits = [..._credits, credit];
+    }
+
+    const tags = [...new Set(_tags.split(" "))]
+      .sort((a, b) => a.localeCompare(b))
+      .join(",");
+
+    const description = `Note - we don't own any videos or pictures in this compilation, all rights go to their respective owners:
+      
+${_credits.join(" ")}
+
+Tags:
+${tags}
+      `;
+
+    console.log(`\n\n\n`);
+    console.log(description);
+  });
+}
+
 async function mergeVideos(folder) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -116,9 +189,11 @@ async function mergeVideos(folder) {
       const _videos = await fs.readdir(path);
 
       /* Get all videos in folder */
-      const videos = _videos
-        .filter((e) => e.includes(".mp4"))
-        .map((e) => `-i "${e}"`);
+      const videos = shuffle(
+        _videos
+          .filter((e) => e.includes(".mp4") && !e.includes("compilation.mp4"))
+          .map((e) => `-i "${e}"`),
+      );
 
       const width = `1280`;
       const height = `720`;
@@ -260,4 +335,5 @@ module.exports = {
   mergeVideos: mergeVideos,
   processVideos: processVideos,
   getTotalTime: getTotalTime,
+  getInfoFromVideoFolder: getInfoFromVideoFolder,
 };
